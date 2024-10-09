@@ -1,91 +1,89 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Bar, ComposedChart } from 'recharts'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Slider } from '@/components/ui/slider'
+import React, { useState, useEffect, useCallback } from 'react'
+import Sidebar from './Sidebar'
+import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Bar } from 'recharts'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
 
-const initialState = {
+export const initialState = {
   contentSetupNormal: 750,
   contentSetupPremium: 1200,
-  contentMonthlyNormal: 499,
-  contentMonthlyPremium: 799,
-  contentClientsNormal: 30,
-  contentClientsPremium: 15,
+  contentMonthlyNormal: 300,
+  contentMonthlyPremium: 500,
+  contentClientsNormal: 3,
+  contentClientsPremium: 2,
   socialSetupNormal: 900,
   socialSetupPremium: 1500,
-  socialMonthlyNormal: 599,
-  socialMonthlyPremium: 999,
-  socialClientsNormal: 25,
-  socialClientsPremium: 10,
+  socialMonthlyNormal: 350,
+  socialMonthlyPremium: 550,
+  socialClientsNormal: 5,
+  socialClientsPremium: 2,
   growthRate: 5,
-  commissionRate: 50
+  commissionRate: 45
 }
 
-const formatNumber = (num: number) => {
+const formatNumber = (num: number): string => {
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(num)
 }
 
-const formatClients = (num: number) => {
+const formatClients = (num: number): number => {
   return Math.round(num)
+}
+
+interface Result {
+  month: number;
+  contentRevenue: number;
+  socialRevenue: number;
+  totalRevenue: number;
+  commission: number;
+  totalClients: number;
+}
+
+const formatNumberES = (num: number): string => {
+  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(num)
+}
+
+const formatClientsWithBreakdown = (total: number, content: number, social: number): JSX.Element => {
+  return (
+    <span>
+      {formatClients(total)}
+      <span className="text-gray-400 ml-1">
+        ({formatClients(content)} - {formatClients(social)})
+      </span>
+    </span>
+  )
 }
 
 export function DashboardComponent() {
   const [state, setState] = useState(initialState)
-  const [tempState, setTempState] = useState(initialState)
-  const [results, setResults] = useState([])
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [results, setResults] = useState<Result[]>([])
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
-  useEffect(() => {
-    calculateResults()
-  }, [state])
-
-  const handleInputChange = (name: string, value: number) => {
-    setTempState(prevState => ({
-      ...prevState,
-      [name]: value
-    }))
-  }
-
-  const applyFilters = () => {
-    setState(tempState)
-  }
-
-  const calculateResults = () => {
-    let newResults = []
+  const calculateResults = useCallback(() => {
+    const newResults: Result[] = []
     let currentContentClientsNormal = state.contentClientsNormal
     let currentContentClientsPremium = state.contentClientsPremium
     let currentSocialClientsNormal = state.socialClientsNormal
     let currentSocialClientsPremium = state.socialClientsPremium
 
     for (let month = 1; month <= 12; month++) {
-      let contentSetupRevenue = (
+      const contentSetupRevenue = (
         (month === 1 ? currentContentClientsNormal * state.contentSetupNormal : 0) +
         (month === 1 ? currentContentClientsPremium * state.contentSetupPremium : 0)
       )
-      let contentMonthlyRevenue = currentContentClientsNormal * state.contentMonthlyNormal + 
+      const contentMonthlyRevenue = currentContentClientsNormal * state.contentMonthlyNormal + 
                                   currentContentClientsPremium * state.contentMonthlyPremium
-      let socialSetupRevenue = (
+      const socialSetupRevenue = (
         (month === 1 ? currentSocialClientsNormal * state.socialSetupNormal : 0) +
         (month === 1 ? currentSocialClientsPremium * state.socialSetupPremium : 0)
       )
-      let socialMonthlyRevenue = currentSocialClientsNormal * state.socialMonthlyNormal + 
+      const socialMonthlyRevenue = currentSocialClientsNormal * state.socialMonthlyNormal + 
                                  currentSocialClientsPremium * state.socialMonthlyPremium
 
-      let totalRevenue = contentSetupRevenue + contentMonthlyRevenue + socialSetupRevenue + socialMonthlyRevenue
-      let commission = totalRevenue * (state.commissionRate / 100)
+      const totalRevenue = contentSetupRevenue + contentMonthlyRevenue + socialSetupRevenue + socialMonthlyRevenue
+      const commission = totalRevenue * (state.commissionRate / 100)
 
       newResults.push({
         month,
@@ -105,6 +103,14 @@ export function DashboardComponent() {
     }
 
     setResults(newResults)
+  }, [state])
+
+  useEffect(() => {
+    calculateResults()
+  }, [calculateResults])
+
+  const handleSidebarValuesChange = (newValues: typeof initialState) => {
+    setState(newValues)
   }
 
   const totalRevenue = results.reduce((sum, result) => sum + result.totalRevenue, 0)
@@ -116,214 +122,154 @@ export function DashboardComponent() {
   const finalPremiumClients = formatClients(state.contentClientsPremium * Math.pow(1 + state.growthRate / 100, 11) + 
                                             state.socialClientsPremium * Math.pow(1 + state.growthRate / 100, 11))
 
-  const InputGroup = ({ label, id, value, onChange }) => {
-    let min = 0
-    let max = 10000
-    let step = 1
+  const handleSidebarCollapse = (collapsed: boolean) => {
+    setIsSidebarCollapsed(collapsed)
+  }
 
-    if (id.includes('Monthly')) {
-      max = 2000
-    } else if (id.includes('Clients')) {
-      max = 100
-    } else if (id.includes('Rate')) {
-      max = 100
-      step = 0.1
+  const formatAxisNumber = (number: number) => {
+    if (number >= 1000) {
+      return `${(number / 1000).toFixed(0)}K`
     }
-
-    return (
-      <div className="space-y-2">
-        <Label htmlFor={id}>{label}:</Label>
-        <Input
-          type="number"
-          id={id}
-          value={value}
-          onChange={(e) => {
-            const newValue = parseFloat(e.target.value)
-            if (!isNaN(newValue) && newValue >= min && newValue <= max) {
-              onChange(id, newValue)
-            }
-          }}
-          min={min}
-          max={max}
-          step={step}
-        />
-        <Slider
-          min={min}
-          max={max}
-          step={step}
-          value={[value]}
-          onValueChange={(newValue) => onChange(id, newValue[0])}
-        />
-      </div>
-    )
+    return number.toString()
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      <aside className={`bg-card shadow-lg transition-all duration-300 ${isSidebarOpen ? 'w-80' : 'w-16'}`}>
-        <div className="p-4 flex justify-between items-center">
-          <h2 className={`font-semibold ${isSidebarOpen ? '' : 'sr-only'}`}>Configuración</h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            aria-label={isSidebarOpen ? 'Cerrar sidebar' : 'Abrir sidebar'}
-          >
-            {isSidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </Button>
-        </div>
-        {isSidebarOpen && (
-          <ScrollArea className="h-[calc(100vh-8rem)] px-4">
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="content">
-                <AccordionTrigger>InspireAI for Content</AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-4">
-                    <InputGroup label="Setup Normal" id="contentSetupNormal" value={tempState.contentSetupNormal} onChange={handleInputChange} />
-                    <InputGroup label="Setup Premium" id="contentSetupPremium" value={tempState.contentSetupPremium} onChange={handleInputChange} />
-                    <InputGroup label="Mensual Normal" id="contentMonthlyNormal" value={tempState.contentMonthlyNormal} onChange={handleInputChange} />
-                    <InputGroup label="Mensual Premium" id="contentMonthlyPremium" value={tempState.contentMonthlyPremium} onChange={handleInputChange} />
-                    <InputGroup label="Clientes Iniciales Normal" id="contentClientsNormal" value={tempState.contentClientsNormal} onChange={handleInputChange} />
-                    <InputGroup label="Clientes Iniciales Premium" id="contentClientsPremium" value={tempState.contentClientsPremium} onChange={handleInputChange} />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="social">
-                <AccordionTrigger>InspireAI for Social Media</AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-4">
-                    <InputGroup label="Setup Normal" id="socialSetupNormal" value={tempState.socialSetupNormal} onChange={handleInputChange} />
-                    <InputGroup label="Setup Premium" id="socialSetupPremium" value={tempState.socialSetupPremium} onChange={handleInputChange} />
-                    <InputGroup label="Mensual Normal" id="socialMonthlyNormal" value={tempState.socialMonthlyNormal} onChange={handleInputChange} />
-                    <InputGroup label="Mensual Premium" id="socialMonthlyPremium" value={tempState.socialMonthlyPremium} onChange={handleInputChange} />
-                    <InputGroup label="Clientes Iniciales Normal" id="socialClientsNormal" value={tempState.socialClientsNormal} onChange={handleInputChange} />
-                    <InputGroup label="Clientes Iniciales Premium" id="socialClientsPremium" value={tempState.socialClientsPremium} onChange={handleInputChange} />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-              <AccordionItem value="general">
-                <AccordionTrigger>Parámetros Generales</AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-4">
-                    <InputGroup label="Tasa de Crecimiento Mensual (%)" id="growthRate" value={tempState.growthRate} onChange={handleInputChange} />
-                    <InputGroup label="Tasa de Comisión (%)" id="commissionRate" value={tempState.commissionRate} onChange={handleInputChange} />
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </ScrollArea>
-        )}
-        {isSidebarOpen && (
-          <div className="p-4">
-            <Button className="w-full" onClick={applyFilters}>
-              Aplicar Filtros
-            </Button>
-          </div>
-        )}
-      </aside>
-
-      <main className="flex-1 p-8 overflow-auto">
+    <div className="flex">
+      <Sidebar 
+        onValuesChange={handleSidebarValuesChange} 
+        onCollapse={handleSidebarCollapse}
+      />
+      <main className={`flex-1 p-8 transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'ml-16' : 'ml-80'}`}>
         <h1 className="text-3xl font-bold mb-8">Dashboard de Precios InspireAI</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium">Ingreso Total</CardTitle>
+          <Card className="bg-blue-100 text-center">
+            <CardHeader>
+              <CardTitle>Ingreso Total</CardTitle>
               <CardDescription>(12 meses)</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{formatNumber(totalRevenue)}</p>
             </CardContent>
+            <CardFooter>
+              <p className="text-sm text-gray-600 w-full">Ingresos acumulados en el último año</p>
+            </CardFooter>
           </Card>
-          <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium">Comisión Total</CardTitle>
+          <Card className="bg-green-100 text-center">
+            <CardHeader>
+              <CardTitle>Comisión Total</CardTitle>
               <CardDescription>(12 meses)</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{formatNumber(totalCommission)}</p>
             </CardContent>
+            <CardFooter>
+              <p className="text-sm text-gray-600 w-full">Comisiones generadas en el último año</p>
+            </CardFooter>
           </Card>
-          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium">Ingreso Mensual Promedio</CardTitle>
+          <Card className="bg-yellow-100 text-center">
+            <CardHeader>
+              <CardTitle>Ingreso Mensual Promedio</CardTitle>
+              <CardDescription>&nbsp;</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold">{formatNumber(averageMonthlyRevenue)}</p>
             </CardContent>
+            <CardFooter>
+              <p className="text-sm text-gray-600 w-full">Promedio de ingresos mensuales</p>
+            </CardFooter>
           </Card>
-          <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium">Clientes Finales</CardTitle>
+          <Card className="bg-pink-100 text-center">
+            <CardHeader>
+              <CardTitle>Clientes Finales</CardTitle>
+              <CardDescription>&nbsp;</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-1">
-                <p className="text-3xl font-bold">{formatClients(finalTotalClients)}</p>
-                <p className="text-sm text-muted-foreground">Normal: {finalNormalClients}</p>
-                <p className="text-sm text-muted-foreground">Premium: {finalPremiumClients}</p>
-              </div>
+              <p className="text-3xl font-bold">{formatClients(finalTotalClients)}</p>
             </CardContent>
+            <CardFooter>
+              <p className="text-sm text-gray-600 w-full">
+                Normal: {finalNormalClients} | Premium: {finalPremiumClients}
+              </p>
+            </CardFooter>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <Card>
             <CardHeader>
               <CardTitle>Evolución de Ingresos y Clientes</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-80">
+              <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={results}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
-                    <YAxis yAxisId="left" tickFormatter={(value) => `${value / 1000}k €`} />
-                    <YAxis yAxisId="right" orientation="right" tickFormatter={(value) => `${value} clientes`} />
-                    <Tooltip 
-                      formatter={(value, name) => {
-                        if (name === 'totalClients') return [formatClients(value), 'Clientes Totales']
-                        return [formatNumber(value), name]
-                      }}
+                    <YAxis 
+                      yAxisId="left" 
+                      tickFormatter={formatAxisNumber}
+                      tick={{fontSize: 12}}
                     />
-                
+                    <YAxis 
+                      yAxisId="right" 
+                      orientation="right" 
+                      tickFormatter={formatAxisNumber}
+                      tick={{fontSize: 12}}
+                    />
+                    <Tooltip />
                     <Legend />
-                    <Bar yAxisId="right" dataKey="totalClients" name="Clientes Totales" fill="#f97316" fillOpacity={0.15} />
-                    <Line yAxisId="left" type="monotone" dataKey="contentRevenue" name="Ingresos Content" stroke="#3b82f6" />
-                    <Line yAxisId="left" type="monotone" dataKey="socialRevenue" name="Ingresos Social" stroke="#10b981" />
-                    <Line yAxisId="left" type="monotone" dataKey="totalRevenue" name="Ingresos Totales" stroke="#8b5cf6" />
+                    <Bar yAxisId="right" dataKey="totalClients" fill="#8884d8" name="Clientes Totales" />
+                    <Line 
+                      yAxisId="left" 
+                      type="monotone" 
+                      dataKey="totalRevenue" 
+                      stroke="#ff7300" 
+                      name="Ingresos Totales" 
+                      strokeWidth={3}
+                    />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Resultados Mensuales</CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-80">
+              <ScrollArea className="h-[400px]">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Mes</TableHead>
-                      <TableHead>Ingresos Content</TableHead>
-                      <TableHead>Ingresos Social</TableHead>
-                      <TableHead>Ingresos Totales</TableHead>
-                      <TableHead>Comisión</TableHead>
-                      <TableHead>Clientes Totales</TableHead>
+                    <TableRow className="h-8">
+                      <TableHead className="py-1 text-xs">Mes</TableHead>
+                      <TableHead className="py-1 text-xs">Ingresos Content</TableHead>
+                      <TableHead className="py-1 text-xs">Ingresos Social</TableHead>
+                      <TableHead className="py-1 text-xs">Ingresos Totales</TableHead>
+                      <TableHead className="py-1 text-xs">Comisión</TableHead>
+                      <TableHead className="py-1 text-xs">Clientes Totales</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {results.map((result) => (
-                      <TableRow key={result.month}>
-                        <TableCell>{result.month}</TableCell>
-                        <TableCell>{formatNumber(result.contentRevenue)}</TableCell>
-                        <TableCell>{formatNumber(result.socialRevenue)}</TableCell>
-                        <TableCell>{formatNumber(result.totalRevenue)}</TableCell>
-                        <TableCell>{formatNumber(result.commission)}</TableCell>
-                        <TableCell>{formatClients(result.totalClients)}</TableCell>
-                      </TableRow>
-                    ))}
+                    {results.map((result) => {
+                      const contentClients = state.contentClientsNormal * Math.pow(1 + state.growthRate / 100, result.month - 1) +
+                                             state.contentClientsPremium * Math.pow(1 + state.growthRate / 100, result.month - 1)
+                      const socialClients = state.socialClientsNormal * Math.pow(1 + state.growthRate / 100, result.month - 1) +
+                                            state.socialClientsPremium * Math.pow(1 + state.growthRate / 100, result.month - 1)
+                      return (
+                        <TableRow key={result.month} className="h-6">
+                          <TableCell className="py-1 text-xs">{result.month}</TableCell>
+                          <TableCell className="py-1 text-xs">{formatNumberES(result.contentRevenue)}</TableCell>
+                          <TableCell className="py-1 text-xs">{formatNumberES(result.socialRevenue)}</TableCell>
+                          <TableCell className="py-1 text-xs">{formatNumberES(result.totalRevenue)}</TableCell>
+                          <TableCell className="py-1 text-xs">{formatNumberES(result.commission)}</TableCell>
+                          <TableCell className="py-1 text-xs">
+                            {formatClientsWithBreakdown(result.totalClients, contentClients, socialClients)}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </ScrollArea>
