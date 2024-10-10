@@ -52,17 +52,31 @@ Abre [http://localhost:3000](http://localhost:3000) en tu navegador para ver la 
 
 ## Personalización
 
-Puedes modificar los parámetros iniciales del simulador en el archivo `components/dashboard.tsx`.
+Puedes modificar los parámetros iniciales del simulador en el archivo `components/dashboard.tsx`. Ajusta los valores en el objeto `initialState` según tus necesidades.
 
-## Despliegue
+## Scripts Disponibles
 
-La forma más sencilla de desplegar esta aplicación es utilizando la [Plataforma Vercel](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme).
+- `npm run dev`: Inicia el servidor de desarrollo
+- `npm run build`: Construye la aplicación para producción
+- `npm start`: Inicia la aplicación en modo producción
+- `npm run lint`: Ejecuta el linter para verificar el código
 
-Para más detalles, consulta nuestra [documentación de despliegue de Next.js](https://nextjs.org/docs/app/building-your-application/deploying).
+## Dependencias Principales
+
+- Next.js: Framework de React para renderizado del lado del servidor
+- React: Biblioteca para construir interfaces de usuario
+- Recharts: Biblioteca para crear gráficos interactivos
+- Tailwind CSS: Framework de CSS para diseño rápido y responsivo
 
 ## Contribuir
 
-Las contribuciones son bienvenidas. Por favor, abre un issue o realiza un pull request con tus sugerencias.
+Las contribuciones son bienvenidas. Por favor, sigue estos pasos:
+
+1. Haz un fork del repositorio
+2. Crea una nueva rama (`git checkout -b feature/AmazingFeature`)
+3. Haz commit de tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Haz push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
 
 ## Licencia
 
