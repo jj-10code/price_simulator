@@ -71,6 +71,9 @@ export function DashboardComponent(): JSX.Element {
     finalPremiumClients
   } = summaryCalculations;
 
+  // Definir el nuevo color turquesa claro con opacidad
+  const barColor = 'rgba(64, 224, 208, 0.6)' // Turquesa claro con 60% de opacidad
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar 
@@ -117,7 +120,10 @@ export function DashboardComponent(): JSX.Element {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
-            <RevenueChart results={memoizedResults} />
+            <RevenueChart 
+              results={memoizedResults} 
+              barColor={barColor} 
+            />
             <ResultsTable 
               results={memoizedResults} 
               state={state} 

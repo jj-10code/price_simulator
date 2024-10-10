@@ -5,6 +5,7 @@ import { Result } from './dashboard'
 
 interface RevenueChartProps {
   results: Result[]
+  barColor: string // Nueva propiedad para el color de las barras
 }
 
 const formatAxisNumber = (number: number) => {
@@ -42,7 +43,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>)
  * @param {RevenueChartProps} props - Propiedades del componente
  * @returns {JSX.Element} Componente RevenueChart
  */
-function RevenueChartComponent({ results }: RevenueChartProps): JSX.Element {
+function RevenueChartComponent({ results, barColor }: RevenueChartProps): JSX.Element {
   const memoizedChart = useMemo(() => (
     <ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={results} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
@@ -61,7 +62,12 @@ function RevenueChartComponent({ results }: RevenueChartProps): JSX.Element {
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend />
-        <Bar yAxisId="right" dataKey="totalClients" fill="#8884d8" name="Clientes Totales" />
+        <Bar 
+          yAxisId="right" 
+          dataKey="totalClients" 
+          fill={barColor} 
+          name="Clientes Totales" 
+        />
         <Line 
           yAxisId="left" 
           type="monotone" 
@@ -81,7 +87,7 @@ function RevenueChartComponent({ results }: RevenueChartProps): JSX.Element {
         <Brush dataKey="month" height={30} stroke="#8884d8" />
       </ComposedChart>
     </ResponsiveContainer>
-  ), [results])
+  ), [results, barColor]) // Añadir barColor a las dependencias del useMemo
 
   return (
     <Card>
